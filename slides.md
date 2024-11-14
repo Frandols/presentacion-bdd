@@ -180,7 +180,7 @@ BEGIN TRANSACTION
 
 # Caso de uso real, transaccion exitosa
 
-```sql
+```sql {all|4-7|8-12|12-15|17-19|21-25|all} twoslash
 BEGIN TRY
     BEGIN TRANSACTION;
 
@@ -212,7 +212,7 @@ END CATCH;
 
 # Transaccion erronea a proposito
 
-```sql
+```sql {all|8-10|21-28|all} twoslash
 BEGIN TRY
     BEGIN TRANSACTION;
 
