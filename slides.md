@@ -178,10 +178,64 @@ BEGIN TRANSACTION
 
 ---
 
-# Conclusión
+# Caso de uso real, transaccion exitosa
 
-<br/>
+```sql
+BEGIN TRY
+    BEGIN TRANSACTION;
 
-Las **transacciones** y las **transacciones anidadas** son herramientas cruciales en el manejo de la consistencia de los datos.
+    -- Inserta un registro en la tabla Reparaciones
+    INSERT INTO [dbo].[Reparaciones] (idPresupuesto, reparado, observaciones, fechaDeFinalizacion, irreparable)
+    VALUES (1021, 1, 'Reparación completada', GETDATE(), 0);
 
-El uso adecuado de estas técnicas depende del contexto y de la naturaleza de las operaciones de la base de datos.
+    -- Inserta un registro en la tabla Entregas relacionado con la reparación
+    INSERT INTO [dbo].[Entregas] (idReparacion, fecha, idMetodoPago)
+    VALUES (1021, GETDATE(), 1);
+
+    -- Actualiza el estado de baja del equipo relacionado
+    UPDATE [dbo].[Equipos]
+    SET baja = 'si'
+    WHERE idEquipo = (SELECT idEquipo FROM [dbo].[Revisiones] WHERE idEquipo = (SELECT idRevision FROM [dbo].[Presupuestos] WHERE idPresupuesto = 1021));
+
+    -- Confirma la transacción
+    COMMIT;
+    PRINT 'Transacción completada con éxito';
+END TRY
+BEGIN CATCH
+    -- Realiza un rollback si hay un error
+    ROLLBACK;
+    PRINT 'Ocurrió un error. Se realizó un rollback de la transacción';
+END CATCH;
+```
+
+---
+
+# Transaccion erronea a proposito
+
+```sql
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    -- Inserta un registro en la tabla Reparaciones
+    INSERT INTO [dbo].[Reparaciones] (idPresupuesto, reparado, observaciones, fechaDeFinalizacion, irreparable)
+    VALUES (1, 1, 'Reparaci�n con error', GETDATE(), 0);
+
+    -- Provoca un error intencional (violaci�n de clave primaria en Entregas)
+    INSERT INTO [dbo].[Entregas] (idReparacion, fecha, idMetodoPago)
+    VALUES (9999, GETDATE(), 1);  -- idReparacion 9999 no existe en Reparaciones
+
+    -- Actualiza el estado de baja del equipo relacionado
+    UPDATE [dbo].[Equipos]
+    SET baja = 'si'
+    WHERE idEquipo = (SELECT idEquipo FROM [dbo].[Revisiones] WHERE idEquipo = (SELECT idEquipo FROM [dbo].[Presupuestos] WHERE idPresupuesto = 1));
+
+    -- Confirma la transacci�n
+    COMMIT;
+    PRINT 'Transacci�n completada con �xito';
+END TRY
+BEGIN CATCH
+    -- Realiza un rollback si hay un error
+    ROLLBACK;
+    PRINT 'Ocurri� un error. Se realiz� un rollback de la transacci�n';
+END CATCH;
+```
